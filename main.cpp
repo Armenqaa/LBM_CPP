@@ -31,7 +31,7 @@ int main() {
       Pois.grid[i][j].v = Vector2D<double>{0, 0};
       Pois.grid[i][j].eq();
     }
-    Pois.grid[Pois.grid.size()-1][j].rho = 1;
+    Pois.grid[Pois.grid.size()-1][j].rho = 1.;
     Pois.grid[Pois.grid.size()-1][j].eq();
   }
   for (int i = 0; i <= x_size; ++i) {
@@ -48,7 +48,7 @@ int main() {
         }
       }
       for (size_t k = 0; k < Q; k++) {
-        Pois.grid[i][j].f_temp[k] = 0;
+        Pois.grid[i][j].f_temp[k] = 0.;
       }
     }
   }
@@ -68,6 +68,7 @@ int main() {
           Pois.grid[i][j].macro();
           Pois.grid[i][j].eq();
           Pois.grid[i][j].k_rel = Pois.grid[i][j].k_rel_calculate(y_size);
+          Pois.grid[i][j].tau = Pois.grid[i][j].tau_calculate(y_size);
           Pois.grid[i][j].col();
         }
         if (Pois.grid[i][j].bound || Pois.grid[i][j].open_bound) {
@@ -81,12 +82,10 @@ int main() {
     }
     if (t % 1000 == 0) {
       double mass_flow = 0;
-      for (int i = 0; i <= x_size; ++i) {
-        for (int j = 0; j <= y_size; ++j) {
-          mass_flow += Pois.grid[i][j].rho * Pois.grid[i][j].v.x;
-        }
+      for (int j = 1; j < y_size; ++j) {
+      mass_flow += Pois.grid[50][j].rho * Pois.grid[50][j].v.x;
       }
-      std::cout << mass_flow/x_size << std::endl;
+      std::cout << mass_flow << std::endl;
     }
   }
 
