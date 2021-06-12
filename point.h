@@ -96,6 +96,24 @@ void Point::zeroing_temp() {
 }
 
 /***
+ * Recalculation of f after collision for bound points
+ */
+void Point::col_for_bound() {
+  for (size_t k = 0; k < Q; ++k) {
+    f[k] = f_temp[k];
+  }
+}
+
+/***
+ * Zeroing f_temp after transfer
+ */
+void Point::zeroing_temp() {
+  for (size_t k = 0; k < Q; ++k) {
+    f_temp[k] = 0;
+  }
+}
+
+/***
  * Calculation of distribution in all directions.
  */
 void Point::eq() {
@@ -269,7 +287,7 @@ void Grid::transfer(int x, int y) {
           }
         } else { // simple move
           grid[x_offset][y_offset].f_temp[k] += grid[x][y].f[k];
-        }
+        } 
       }
     }
   }
@@ -304,6 +322,38 @@ void Grid::boundaries() {
     for (auto &item : row) {
       if (item.bound) {
         item.interior = false;
+      }
+    }
+  }
+  for (size_t i = 0; i < grid.size(); ++i) {
+    for (size_t j = 0; j < grid[i].size(); ++j) {
+      if (grid[i][j].bound) {
+        grid[i][j].w_for_bound_point = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for (int a = -1; a <= 1; ++a) {
+          for (int b = -1; b <= 1; ++b) {
+            if (i + a < grid.size() && j + b < grid[i].size() &&
+                grid[i + a][j + b].interior) {
+              size_t direction_to_change;
+              for (size_t q = 0; q < Q; ++q) {
+                if (e[q].x == a && e[q].y == b) {
+                  direction_to_change = q;
+                  break;
+                }
+              }
+              grid[i][j].w_for_bound_point[direction_to_change] =
+                  w[direction_to_change];
+            }
+          }
+        }
+        double normalization_factor =
+            std::accumulate(grid[i][j].w_for_bound_point.begin(),
+                            grid[i][j].w_for_bound_point.end(), 0.);
+        std::transform(grid[i][j].w_for_bound_point.begin(),
+                       grid[i][j].w_for_bound_point.end(),
+                       grid[i][j].w_for_bound_point.begin(),
+                       [normalization_factor](double &direction) {
+                         return direction / normalization_factor;
+                       });
       }
     }
   }
