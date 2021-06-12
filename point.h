@@ -9,6 +9,7 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <math.h>
 
 /***
  * The class remembers the macro parameters of each point taken from the input
@@ -18,7 +19,7 @@
 class Point {
 public:
   std::array<double, Q> f, f_temp, f_eq;
-  double tau, T, rho, P;
+  double k_rel, T, rho, P;
   /**<
    * f - distribution function.
    * f_temp - distribution function after one step.
@@ -30,13 +31,15 @@ public:
    */
   bool interior = false;
   bool bound = false;
+  bool open_bound = false;
   Vector2D<double> v;
   void eq();
   void col();
   void macro();
   void zeroing_temp();
   void col_for_bound();
-  std::vector<double> w_for_bound_point;
+  double k_rel_calculate(int);
+  std::vector<double> w_for_bound_point; // TODO: use optional array
   explicit Point(double = 0., double = 0.,
                  Vector2D<double> = Vector2D<double>(0., 0.), double = 0.);
 };
@@ -50,18 +53,45 @@ class Grid {
 public:
   explicit Grid(std::vector<std::pair<int, int>>);
   void boundaries();
-  void open_bound();
+  void open_boundaries();
   void transfer(int, int);
+  void weight_calculate();
   std::array<double, 5> macro_at(size_t, size_t); // TODO: result output
   std::vector<std::vector<Point>> grid;
 };
+
+double Point::k_rel_calculate(int size) {
+  double k = sqrt(3.141592653 / 6) * rho / Kn / size;
+  if (k > 1) {
+    k = 1;
+  }
+  return k;
+}
 
 /***
  * Recalculation of f after collision
  */
 void Point::col() {
   for (size_t k = 0; k < Q; ++k) {
-    f[k] = f_temp[k] - 1. / tau * (f_temp[k] - f_eq[k]);
+    f[k] = f_temp[k] - k_rel * (f_temp[k] - f_eq[k]);
+  }
+}
+
+/***
+ * Recalculation of f after collision for bound points
+ */
+void Point::col_for_bound() {
+  for (size_t k = 0; k < Q; ++k) {
+    f[k] = f_temp[k];
+  }
+}
+
+/***
+ * Zeroing f_temp after transfer
+ */
+void Point::zeroing_temp() {
+  for (size_t k = 0; k < Q; ++k) {
+    f_temp[k] = 0;
   }
 }
 
@@ -98,7 +128,7 @@ void Point::eq() {
 /***
  * Open bound for Poiseuille flow
  */
-void Grid::open_bound() {
+void Grid::open_boundaries() {
   for (int j = 0; j < grid[0].size(); ++j) {
     grid[0][j].rho = 1.1;
     grid[0][j].T = 1.;
@@ -124,13 +154,13 @@ void Grid::open_bound() {
     grid[grid.size() - 1][j].eq();
 
     if (grid[grid.size() - 1][j].interior) {
-      grid[grid.size() - 1][j].f = grid[grid.size() - 1][j].f_eq;
+      grid[grid.size() - 1][j].f_temp = grid[grid.size() - 1][j].f_eq;
     } else {
       for (size_t k = 0; k < Q; k++) {
         if (grid[grid.size() - 1][j].w_for_bound_point[k] > 0) {
-          grid[grid.size() - 1][j].f[k] = grid[grid.size() - 1][j].f_eq[k];
+          grid[grid.size() - 1][j].f_temp[k] = grid[grid.size() - 1][j].f_eq[k];
         } else {
-          grid[grid.size() - 1][j].f[k] = 0.;
+          grid[grid.size() - 1][j].f_temp[k] = 0.;
         }
       }
     }
@@ -170,7 +200,7 @@ Point::Point(double rho1, double T1, Vector2D<double> v1,
   T = T1;
   v = v1;
   P = P1;
-  tau = 1;
+  k_rel = 1;
   eq();
   for (size_t k = 0; k < Q; ++k) {
     f[k] = f_eq[k];
@@ -241,16 +271,23 @@ void Grid::transfer(int x, int y) {
   for (int k = 0; k < Q; ++k) {
     if (grid[x][y].f[k] > 0) {
       int x_offset = x + e[k].x, y_offset = y + e[k].y;
-      if (grid[x_offset][y_offset].bound) {
-        for (int direction = 0; direction < Q; direction++) {
-          double weight = grid[x_offset][y_offset].w_for_bound_point[direction];
-          if (weight != 0) {
-            grid[x_offset][y_offset].f_temp[direction] +=
-                grid[x][y].f[k] * weight;
+      bool offset_in_bounds = x_offset >= 0 && y_offset >= 0 &&
+                              x_offset < grid.size() &&
+                              y_offset < grid[x_offset].size();
+      bool bound_point = offset_in_bounds && grid[x_offset][y_offset].w_for_bound_point.size()>0;
+      if (bound_point) {
+        if (grid[x_offset][y_offset].bound) {
+          for (int direction = 0; direction < Q; direction++) {
+            double weight =
+                grid[x_offset][y_offset].w_for_bound_point[direction]; // TODO: check if w_for_bound_point is not empty
+            if (weight != 0) {
+              grid[x_offset][y_offset].f_temp[direction] +=
+                  grid[x][y].f[k] * weight;
+            }
           }
-        }
-      } else { // simple move
-        grid[x_offset][y_offset].f_temp[k] += grid[x][y].f[k];
+        } else { // simple move
+          grid[x_offset][y_offset].f_temp[k] += grid[x][y].f[k];
+        } 
       }
     }
   }
@@ -322,6 +359,49 @@ void Grid::boundaries() {
   }
 }
 
+/***
+ * Weight calculation for each solid boundary point.
+ */
+void Grid::weight_calculate() {
+  for (size_t i = 0; i < grid.size(); ++i) {
+    for (size_t j = 0; j < grid[i].size(); ++j) {
+      if (grid[i][j].bound || grid[i][j].open_bound) {
+        grid[i][j].w_for_bound_point = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for (int a = -1; a <= 1; ++a) {
+          for (int b = -1; b <= 1; ++b) {
+            bool offset =
+                i + a >= 0 && j + b >= 0 && i + a < grid.size() &&
+                j + b < grid[i + a].size();
+            if (offset) {
+              size_t direction_to_change = 0;
+              for (size_t q = 0; q < Q; ++q) {
+                if (e[q].x == a && e[q].y == b) {
+                  direction_to_change = q;
+                  break;
+                }
+              }
+              grid[i][j].w_for_bound_point[direction_to_change] =
+                  w[direction_to_change];
+            }
+          }
+        }
+        if (grid[i][j].bound) {
+          double normalization_factor =
+              std::accumulate(grid[i][j].w_for_bound_point.begin(),
+                              grid[i][j].w_for_bound_point.end(), 0.);
+          std::transform(grid[i][j].w_for_bound_point.begin(),
+                         grid[i][j].w_for_bound_point.end(),
+                         grid[i][j].w_for_bound_point.begin(),
+                         [normalization_factor](double &direction) {
+                           return direction / normalization_factor;
+                         });
+        } else {
+          grid[i][j].w_for_bound_point[0] = 0;
+        }
+      }
+    }
+  }
+}
 std::array<double, 5> Grid::macro_at(size_t, size_t) {
   return std::array<double, 5>();
 }
