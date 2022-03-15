@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <numeric>
 #include <vector>
 
@@ -72,14 +72,12 @@ public:
 
     void weight_calculate();
 
-    std::array<double, 5> macro_at(size_t, size_t); // TODO: result output
     std::vector<std::vector<Point>> grid;
 };
 
 double Point::tau_calculate(int size) const {
     double k = sqrt(M_PI / 6) * rho / Kn / size;
-    double tau = 1 / k + 0.5;
-    return tau;
+    return 1 / k + 0.5;
 }
 
 double Point::k_rel_calculate(int size) const {
@@ -278,7 +276,7 @@ void Grid::transfer(int x, int y) {
                                     x_offset < grid.size() &&
                                     y_offset < grid[x_offset].size();
             bool bound_point = offset_in_bounds &&
-                               grid[x_offset][y_offset].w_for_bound_point.size() > 0;
+                               !grid[x_offset][y_offset].w_for_bound_point.empty();
             if (bound_point) {
                 if (grid[x_offset][y_offset].bound) {
                     for (int direction = 0; direction < Q; direction++) {
@@ -338,7 +336,7 @@ void Grid::weight_calculate() {
             if (grid[i][j].bound || grid[i][j].open_bound) {
                 grid[i][j].w_for_bound_point = std::vector<double>(Q, 0.);
                 for (const auto direction : e()) {
-                    bool offset = i + direction.x >= 0 && j + direction.y >= 0 && i + direction.x < grid.size() &&
+                    bool offset = i + static_cast<int>(direction.x) >= 0 && j + direction.y >= 0 && i + direction.x < grid.size() &&
                                   j + direction.y < grid[i + direction.x].size();
                     if (offset) {
                         size_t direction_to_change = 0;
@@ -368,10 +366,6 @@ void Grid::weight_calculate() {
             }
         }
     }
-}
-
-std::array<double, 5> Grid::macro_at(size_t, size_t) {
-    return std::array<double, 5>();
 }
 
 #endif // LBM_CPP_POINT_H

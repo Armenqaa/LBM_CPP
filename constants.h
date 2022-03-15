@@ -7,7 +7,7 @@
 #include <array>
 #include <iostream>
 #include <vector>
-#include <math.h>
+#include <cmath>
 #include "vector_2d.h"
 
 /**<
@@ -18,16 +18,16 @@
  * balance - balancing factor for boundary conditions.
  */
 constexpr std::size_t Q = 9;
-std::array<Vector2D<int>, 9> e_9 = {
-        Vector2D<int>(0, 0),
-        Vector2D<int>(1, 0),
-        Vector2D<int>(0, 1),
-        Vector2D<int>(-1, 0),
-        Vector2D<int>(0, -1),
-        Vector2D<int>(1, 1),
-        Vector2D<int>(-1, 1),
-        Vector2D<int>(-1, -1),
-        Vector2D<int>(1, -1)
+std::array<Vector2D<double>, 9> e_9 = {
+        Vector2D<double>(0, 0),
+        Vector2D<double>(1, 0),
+        Vector2D<double>(0, 1),
+        Vector2D<double>(-1, 0),
+        Vector2D<double>(0, -1),
+        Vector2D<double>(1, 1),
+        Vector2D<double>(-1, 1),
+        Vector2D<double>(-1, -1),
+        Vector2D<double>(1, -1)
 };
 
 std::array<double, 9> w_9 = {4. / 9,  1. / 9,  1. / 9,  1. / 9, 1. / 9,
@@ -35,16 +35,16 @@ std::array<double, 9> w_9 = {4. / 9,  1. / 9,  1. / 9,  1. / 9, 1. / 9,
 
 double r = sqrt((125 + 5 * sqrt(193)) / 72);
 
-std::array<Vector2D<int>, 17> e_17 = {
-        Vector2D<int>(0, 0), Vector2D<int>(1, 0),
-        Vector2D<int>(0, 1), Vector2D<int>(-1, 0),
-        Vector2D<int>(0, -1), Vector2D<int>(1, 1),
-        Vector2D<int>(-1, 1), Vector2D<int>(-1, -1),
-        Vector2D<int>(1, -1), Vector2D<int>(2, 2),
-        Vector2D<int>(-2, 2), Vector2D<int>(-2, -2),
-        Vector2D<int>(2, -2), Vector2D<int>(3, 0),
-        Vector2D<int>(0, 3), Vector2D<int>(-3, 0),
-        Vector2D<int>(0, -3)
+std::array<Vector2D<double>, 17> e_17 = {
+        Vector2D<double>(0, 0), Vector2D<double>(1, 0),
+        Vector2D<double>(0, 1), Vector2D<double>(-1, 0),
+        Vector2D<double>(0, -1), Vector2D<double>(1, 1),
+        Vector2D<double>(-1, 1), Vector2D<double>(-1, -1),
+        Vector2D<double>(1, -1), Vector2D<double>(2, 2),
+        Vector2D<double>(-2, 2), Vector2D<double>(-2, -2),
+        Vector2D<double>(2, -2), Vector2D<double>(3, 0),
+        Vector2D<double>(0, 3), Vector2D<double>(-3, 0),
+        Vector2D<double>(0, -3)
 };
 
 std::array<double, 17> w_17 = {
