@@ -55,10 +55,10 @@ int main() {
   for (size_t t = 0; t < iterations; ++t) {
     for (int i = 0; i <= x_size; ++i) {
       for (int j = 0; j <= y_size; ++j) {
-        Pois.transfer(i, j);
-      }
-      for (size_t k = 0; k < Q; k++) {
-        Pois.grid[i][j].f_temp[k] = 0;
+          Pois.transfer(i, j);
+          for (size_t k = 0; k < Q; k++) {
+              Pois.grid[i][j].f_temp[k] = 0;
+          }
       }
     }
     Pois.open_boundaries();
